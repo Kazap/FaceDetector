@@ -19,15 +19,11 @@ class MainActivity : AppCompatActivity(), FaceDetector.FaceDetectorListener {
 
     }
 
-    override fun onGotFirstFace() {
-        Log.d("FACEDETECTION", "FIRST-FACE")
-    }
-
     override fun onFaceShowUp() {
-        Log.d("FACEDETECTION", "FACE SHOW UP")
+        Log.d("FACEDETECTION-LIB", "FACE SHOW UP")
     }
 
     override fun onFaceShowOff() {
-        Log.d("FACEDETECTION", "FACE SHOW OFF")
+        Log.d("FACEDETECTION-LIB", "FACE SHOW OFF")
     }
 }

@@ -15,32 +15,18 @@ class FaceDetector private constructor(
 ) {
 
     companion object {
-        private const val FRAME_COUNT = 30f
-        private const val PERCENTAGE_THRESHOLD = 70f
+        private const val FRAME_COUNT = 6f
+        private const val PERCENTAGE_THRESHOLD = 60f
     }
 
     private val arrayComparison: ArrayList<Boolean> = ArrayList()
-    private var gotFirstFace = false
+    private var gotFace = false
+    private var callFaceOn = true
+    private var callFaceOff = false
 
     init {
         cameraView.setLifecycleOwner(lifecycleOwner)
         cameraView.addFrameProcessor(getFrameProcessor())
-
-        //test optional feature
-        cameraView.addCameraListener(object : CameraListener() {
-
-            override fun onCameraOpened(options: CameraOptions) {
-                super.onCameraOpened(options)
-                //re-initialize camera here
-            }
-
-            override fun onCameraClosed() {
-                super.onCameraClosed()
-                //stop/remove frame processor
-            }
-        })
-
-
     }
 
     private fun checkBounds(pair: Pair<Boolean, FirebaseVisionImageMetadata?>): Boolean {
@@ -71,14 +57,22 @@ class FaceDetector private constructor(
                 getFaceDetector().detectInImage(FirebaseVisionImage.fromByteArray(frame.data, pair.second!!))
                     .addOnSuccessListener { faceList ->
 
-                        if (gotFirstFace && faceList.size == 0) {
+                        if (callFaceOff && gotFace && faceList.size == 0) {
                             //no face detected
                             faceDetectorListener.onFaceShowOff()
+
+                            gotFace = false
+                            callFaceOn = true
+                            callFaceOff = false
                         }
 
-                        if (gotFirstFace && faceList.size >= 1) {
+                        if (callFaceOn && gotFace && faceList.size >= 1) {
                             //face(s) detected
                             faceDetectorListener.onFaceShowUp()
+
+                            gotFace = false
+                            callFaceOn = false
+                            callFaceOff = true
                         }
 
                         if (faceList.size > 0) {
@@ -93,17 +87,11 @@ class FaceDetector private constructor(
                             val percentage: Float = (filtered.size / FRAME_COUNT) * 100
 
                             if (percentage > PERCENTAGE_THRESHOLD) {
-
-                                if (!gotFirstFace){
-                                    faceDetectorListener.onGotFirstFace()
-                                }
-
-                                gotFirstFace = true
+                                gotFace = true
                             }
 
                             arrayComparison.clear()
                         }
-
 
                     }.addOnFailureListener {
                         it.printStackTrace()
@@ -134,7 +122,7 @@ class FaceDetector private constructor(
 
     }
 
-    class Builder() {
+    class Builder {
 
         private lateinit var cameraView: CameraView
         private lateinit var lifecycleOwner: LifecycleOwner
@@ -162,7 +150,6 @@ class FaceDetector private constructor(
     }
 
     interface FaceDetectorListener {
-        fun onGotFirstFace()
         fun onFaceShowUp()
         fun onFaceShowOff()
     }
