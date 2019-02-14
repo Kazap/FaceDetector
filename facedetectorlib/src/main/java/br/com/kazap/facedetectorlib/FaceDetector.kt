@@ -102,8 +102,8 @@ class FaceDetector private constructor(
 
     private fun extractFrameMetadata(frame: Frame): Pair<Boolean, FirebaseVisionImageMetadata?> {
 
-        if (frame.size.width <= 0 || frame.size.height <= 0
-            || frame.data.isEmpty()
+        if (frame.size == null || frame.data == null || frame.data.isEmpty()
+            || frame.size.width <= 0 || frame.size.height <= 0
         ) return Pair(false, null)
         else {
 
