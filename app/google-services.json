@@ -1,0 +1,55 @@
+{
+  "project_info": {
+    "project_number": "518958246723",
+    "firebase_url": "https://facedetector-4ed51.firebaseio.com",
+    "project_id": "facedetector-4ed51",
+    "storage_bucket": "facedetector-4ed51.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:518958246723:android:36e2e1610c146afb",
+        "android_client_info": {
+          "package_name": "br.com.kazap.facedetector"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "518958246723-t5sdu42h6g91ljcl1of8p8ilgga5og8q.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "br.com.kazap.facedetector",
+            "certificate_hash": "dacf200484962f2aaf992fead0bea3635935079c"
+          }
+        },
+        {
+          "client_id": "518958246723-e3qups68db97mp9bao155nvd3uob4n8j.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBgYRsvs079rAusDq6rkjmueSSQbyM5PxI"
+        }
+      ],
+      "services": {
+        "analytics_service": {
+          "status": 1
+        },
+        "appinvite_service": {
+          "status": 2,
+          "other_platform_oauth_client": [
+            {
+              "client_id": "518958246723-e3qups68db97mp9bao155nvd3uob4n8j.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        },
+        "ads_service": {
+          "status": 2
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

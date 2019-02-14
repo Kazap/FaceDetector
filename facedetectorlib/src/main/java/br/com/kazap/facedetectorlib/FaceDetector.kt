@@ -76,7 +76,7 @@ class FaceDetector private constructor(
                             faceDetectorListener.onFaceShowOff()
                         }
 
-                        if (gotFirstFace && faceList.size > 1) {
+                        if (gotFirstFace && faceList.size >= 1) {
                             //face(s) detected
                             faceDetectorListener.onFaceShowUp()
                         }
@@ -134,7 +134,7 @@ class FaceDetector private constructor(
 
     }
 
-    inner class Builder() {
+    class Builder() {
 
         private lateinit var cameraView: CameraView
         private lateinit var lifecycleOwner: LifecycleOwner
