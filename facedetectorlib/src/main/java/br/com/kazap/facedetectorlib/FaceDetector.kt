@@ -4,9 +4,11 @@ import androidx.lifecycle.LifecycleOwner
 import com.google.firebase.ml.vision.FirebaseVision
 import com.google.firebase.ml.vision.common.FirebaseVisionImage
 import com.google.firebase.ml.vision.common.FirebaseVisionImageMetadata
+import com.google.firebase.ml.vision.face.FirebaseVisionFace
 import com.google.firebase.ml.vision.face.FirebaseVisionFaceDetector
 import com.google.firebase.ml.vision.face.FirebaseVisionFaceDetectorOptions
 import com.otaliastudios.cameraview.*
+import java.lang.Exception
 
 class FaceDetector private constructor(
     cameraView: CameraView,
@@ -19,18 +21,13 @@ class FaceDetector private constructor(
         private const val PERCENTAGE_THRESHOLD = 60f
     }
 
-    private val arrayComparison: ArrayList<Boolean> = ArrayList()
-    private var gotFace = false
-    private var callFaceOn = true
-    private var callFaceOff = false
+    private var amountComparisonTrue = 0
+    private var amountComparisonFalse = 0
+    private var isFaceShowUp = false
 
     init {
         cameraView.setLifecycleOwner(lifecycleOwner)
         cameraView.addFrameProcessor(getFrameProcessor())
-    }
-
-    private fun checkBounds(pair: Pair<Boolean, FirebaseVisionImageMetadata?>): Boolean {
-        return pair.first
     }
 
     private fun getFaceDetector(): FirebaseVisionFaceDetector {
@@ -48,104 +45,67 @@ class FaceDetector private constructor(
     }
 
     private fun getFrameProcessor(): FrameProcessor {
-
         return FrameProcessor { frame ->
-
-            val pair = extractFrameMetadata(frame)
-            if (checkBounds(pair)) {
-
-                getFaceDetector().detectInImage(FirebaseVisionImage.fromByteArray(frame.data, pair.second!!))
-                    .addOnSuccessListener { faceList ->
-
-                        if (callFaceOff && gotFace && faceList.size == 0) {
-                            //no face detected
-                            faceDetectorListener.onFaceShowOff()
-
-                            gotFace = false
-                            callFaceOn = true
-                            callFaceOff = false
-                        }
-
-                        if (callFaceOn && gotFace && faceList.size >= 1) {
-                            //face(s) detected
-                            faceDetectorListener.onFaceShowUp()
-
-                            gotFace = false
-                            callFaceOn = false
-                            callFaceOff = true
-                        }
-
-                        if (faceList.size > 0) {
-                            arrayComparison.add(true)
-                        } else {
-                            arrayComparison.add(false)
-                        }
-
-                        if (arrayComparison.size >= FRAME_COUNT) {
-
-                            val filtered = arrayComparison.filter { it }
-                            val percentage: Float = (filtered.size / FRAME_COUNT) * 100
-
-                            if (percentage > PERCENTAGE_THRESHOLD) {
-                                gotFace = true
-                            }
-
-                            arrayComparison.clear()
-                        }
-
-                    }.addOnFailureListener {
-                        it.printStackTrace()
-                    }
+            extractFrameMetadata(frame)?.let { imageMetadata ->
+                getFaceDetector()
+                    .detectInImage(FirebaseVisionImage.fromByteArray(frame.data, imageMetadata))
+                    .addOnSuccessListener { faceList -> detectInImageSuccess(faceList) }
+                    .addOnFailureListener { exception -> detectInImageFailure(exception) }
             }
         }
     }
 
-    private fun extractFrameMetadata(frame: Frame): Pair<Boolean, FirebaseVisionImageMetadata?> {
-
+    private fun extractFrameMetadata(frame: Frame): FirebaseVisionImageMetadata? {
         //noinspection ConstantConditions
-        if (frame.size == null || frame.data == null || frame.data.isEmpty()
-            || frame.size.width <= 0 || frame.size.height <= 0
-        ) return Pair(false, null)
-        else {
-
-            frame.let {
-
-                return Pair(
-                    true, FirebaseVisionImageMetadata.Builder()
-                        .setWidth(it.size.width)
-                        .setHeight(it.size.height)
-                        .setFormat(it.format)
-                        .setRotation(it.rotation / 90)
-                        .build()
-                )
+        return if (frame.data.isEmpty() || frame.size.width <= 0 || frame.size.height <= 0) {
+            null
+        } else {
+            with(frame) {
+                FirebaseVisionImageMetadata.Builder()
+                    .setWidth(size.width)
+                    .setHeight(size.height)
+                    .setFormat(format)
+                    .setRotation(rotation / 90)
+                    .build()
             }
         }
-
     }
 
-    class Builder {
+    private fun detectInImageSuccess(faceList: List<FirebaseVisionFace>) {
+        if (faceList.isEmpty()) amountComparisonFalse++ else amountComparisonTrue++
 
-        private lateinit var cameraView: CameraView
-        private lateinit var lifecycleOwner: LifecycleOwner
-        private lateinit var faceDetectorListener: FaceDetectorListener
+        if (getTotalAmountComparison() >= FRAME_COUNT) {
+            if (faceList.isEmpty() && isFaceShowUp) {
+                faceDetectorListener.onFaceShowOff()
+                isFaceShowUp = false
+            } else if (faceList.isNotEmpty() && !isFaceShowUp && isPercentageGreaterThanThreshold()) {
+                faceDetectorListener.onFaceShowUp()
+                isFaceShowUp = true
+            }
 
-        fun cameraInstance(cameraView: CameraView): Builder {
-            this.cameraView = cameraView
-            return this
+            amountComparisonTrue = 0
+            amountComparisonFalse = 0
         }
+    }
 
-        fun lifecycleOwner(lifecycleOwner: LifecycleOwner): Builder {
-            this.lifecycleOwner = lifecycleOwner
-            return this
-        }
+    private fun detectInImageFailure(exception: Exception) {
+        exception.printStackTrace()
+    }
 
-        fun listener(faceDetectorListener: FaceDetectorListener): Builder {
-            this.faceDetectorListener = faceDetectorListener
-            return this
-        }
+    private fun getTotalAmountComparison() = amountComparisonTrue + amountComparisonFalse
 
+    private fun isPercentageGreaterThanThreshold(): Boolean {
+        val percentage: Float = (amountComparisonTrue / FRAME_COUNT) * 100
+        return percentage > PERCENTAGE_THRESHOLD
+    }
+
+    class Builder(
+        private val cameraView: CameraView,
+        private val lifecycleOwner: LifecycleOwner,
+        private val faceDetectorListener: FaceDetectorListener
+    ) {
         fun build(): FaceDetector {
-            return FaceDetector(this.cameraView, this.lifecycleOwner, this.faceDetectorListener)
+            return FaceDetector(cameraView, lifecycleOwner, faceDetectorListener)
         }
 
     }

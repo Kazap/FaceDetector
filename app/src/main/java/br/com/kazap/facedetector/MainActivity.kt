@@ -12,11 +12,7 @@ class MainActivity : AppCompatActivity(), FaceDetector.FaceDetectorListener {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-        FaceDetector.Builder().cameraInstance(cameraView)
-            .lifecycleOwner(this)
-            .listener(this)
-            .build()
-
+        FaceDetector.Builder(cameraView, this, this).build()
     }
 
     override fun onFaceShowUp() {
